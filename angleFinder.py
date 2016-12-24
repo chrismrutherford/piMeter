@@ -19,17 +19,21 @@ class AngleFinder(PiRGBAnalysis):
 
         a = np.zeros((720, 1280, 3), dtype=np.uint8)
 
-        for i in range(360):
+        for i in range(60):
             x,y=self.centre
-            segPoints = self.segLine(x,y,i)
+            segPoints = self.segLine(x,y,i*6)
             self.segList.append(segPoints)
-            self.plotPoints(a,segPoints)
 
+
+        for seg in self.segList:
+            self.plotPoints(a,seg)
+
+        self.drawBorder(a)
         o = camera.add_overlay(np.getbuffer(a), layer=3, alpha=64)
 
     def drawBorder(self,a):
-        #a[360, :, :] = 0xff
-        #a[:, 640, :] = 0xff
+        a[360, :, :] = 0xff
+        a[:, 640, :] = 0xff
 
         a[0, :, :] = 0xff
         a[:, 0, :] = 0xff
@@ -43,40 +47,23 @@ class AngleFinder(PiRGBAnalysis):
             a[y,x,:]=0xff
         return a
 
+    def sumPoints(self,a,points):
+        rgbSum=[0,0,0]
+        for point in points:
+            x,y=point
+            for col in range(3):
+                rgbSum[col] += a[y,x,col]
+        return rgbSum
+
+
     def analyze(self, a):
-        #log=Log()
+        log=Log()
         self.camera.annotate_text = "%d" % self.i
         self.i+=1
 
+        for seg in self.segList:
+            self.sumPoints(a,seg),
 
-    def segments(self):
-        log=Log()
-        step=1
-        redsMax=0
-        redsMaxAngle=0
-        for i in range(360):
-            x,y=self.centre
-            segPoints = self.segLine(x,y,i*step)
-            reds = self.samplePoints(segPoints)
-            if(reds> redsMax):
-                redsMax=reds
-                redsMaxAngle=i
-            self.plotPoints(segPoints)
-        print "angle",redsMaxAngle,"reds",redsMax
-
-    def samplePoints(self,points):
-        #log=Log()
-        reds=0
-        for point in points:
-            x=point[0]
-            y=point[1]
-            #print x,y
-            #pix = self.arrowPa[x][y]
-            #reds+=pix[0]
-            #if pix[0] != [0]:
-            #    print pix, point
-        #print pixel_array
-        return reds
 
     def segLine(self,x,y,a):
         #log=Log()
@@ -89,23 +76,6 @@ class AngleFinder(PiRGBAnalysis):
         y2 += int((self.centre[1]-1)*math.cos(math.radians(a)))
 
         return self.line((x1,y1),(x2,y2))
-
-    def circle(self,x,y,l):
-        #log=Log()
-        points=[]
-        for a in range(360):
-            points.append(self.circlePoint(x,y,a,l))
-        return points
-
-    def circlePoint(self,x,y,a,l):
-        #log=Log()
-        x += int(l*math.sin(math.radians(a)))
-        y += int(l*math.cos(math.radians(a)))
-        return (x,y)
-
-
-
-
 
     #   Bresenham's Line Drawing Algorithm
     #   see: http://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm
@@ -151,8 +121,6 @@ class MeterReader():
         camera.resolution = (1280, 720)
         camera.framerate = 24
         camera.start_preview()
-
-
 
         # Construct the analysis output and start recording data to it
         af = AngleFinder(camera)
