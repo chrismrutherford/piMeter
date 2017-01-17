@@ -19,9 +19,9 @@ class AngleFinder(PiRGBAnalysis):
 
         a = np.zeros((720, 1280, 3), dtype=np.uint8)
 
-        for i in range(60):
+        for i in range(36):
             x,y=self.centre
-            segPoints = self.segLine(x,y,i*6)
+            segPoints = self.segLine(x,y,i*10)
             self.segList.append(segPoints)
 
 
@@ -55,22 +55,40 @@ class AngleFinder(PiRGBAnalysis):
                 rgbSum[col] += a[y,x,col]
         return rgbSum
 
+    def sumPointsCol(self,a,points,col):
+        colSum=0
+        for point in points:
+            x,y=point
+            colSum += a[y,x,col]
+        return colSum
+
 
     def analyze(self, a):
         log=Log()
         self.camera.annotate_text = "%d" % self.i
+
+    
+        for c in range(3):
+            cmin=[0,1000000]
+            cmax=[0,0]
+            for i,seg in enumerate(self.segList):
+                cval = i, self.sumPointsCol(a,seg,c)
+                #print cval
+                if cval[1] < cmin[1]:
+                    cmin=cval
+                if cval[1] > cmax[1]:
+                    cmax=cval
+            print c, "min", cmin, "max", cmax,
+        print
+
         self.i+=1
-
-        for seg in self.segList:
-            self.sumPoints(a,seg),
-
 
     def segLine(self,x,y,a):
         #log=Log()
         x1=x2=x
         y1=y2=y
-        x1 += int(50*math.sin(math.radians(a)))
-        y1 += int(50*math.cos(math.radians(a)))
+        x1 += int(40*math.sin(math.radians(a)))
+        y1 += int(40*math.cos(math.radians(a)))
 
         x2 += int((self.centre[1]-1)*math.sin(math.radians(a)))
         y2 += int((self.centre[1]-1)*math.cos(math.radians(a)))
@@ -131,5 +149,6 @@ class MeterReader():
         finally:
             camera.stop_recording()
 
+Log.enabled=False
 
 mr=MeterReader()
